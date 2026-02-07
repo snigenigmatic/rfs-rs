@@ -1,0 +1,20 @@
+[package]
+name = "rfs-rs"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bytes = "1.11.1"
+clap = { version = "4.5.57", features = ["derive", "env"] }
+metrics = "0.24.3"
+metrics-exporter-prometheus = "0.18.1"
+futures = "0.3.31"
+tokio = { version = "1.49.0", features = ["full"] }
+tokio-util = "0.7.18"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.22", features = [
+    "env-filter",
+    "fmt",
+    "registry",
+] }
+thiserror = "2.0.18"
