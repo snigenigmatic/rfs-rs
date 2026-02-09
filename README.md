@@ -48,6 +48,8 @@ Notes
 TODO
 ----
 - [] Add more commands (sorted sets, transactions, pub/sub)
+    - [x] ZADD
+    - [] ZRANGE, ZSCORE, etc. for sorted sets
 - [] Implement RESP3 features (maps, sets, etc.)
 - [] Add configuration options (persistence, eviction policies)
 - [] Improve error handling and logging
