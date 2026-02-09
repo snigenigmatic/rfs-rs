@@ -294,6 +294,19 @@ pub fn rewrite_aof(path: &Path, store: &SharedStore) -> io::Result<()> {
                         encode_frame(&RespFrame::Array(Some(args)), &mut buf);
                     }
                 }
+                Value::ZSet(vec) => {
+                    if !vec.is_empty() {
+                        let mut args = vec![
+                            RespFrame::BulkString(Some(Bytes::from_static(b"ZADD"))),
+                            RespFrame::BulkString(Some(Bytes::copy_from_slice(key.as_bytes()))),
+                        ];
+                        for (m, s) in vec {
+                            args.push(RespFrame::BulkString(Some(Bytes::copy_from_slice(s.to_string().as_bytes()))));
+                            args.push(RespFrame::BulkString(Some(m.clone())));
+                        }
+                        encode_frame(&RespFrame::Array(Some(args)), &mut buf);
+                    }
+                }
             }
             w.write_all(&buf)?;
         }

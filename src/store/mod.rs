@@ -249,6 +249,36 @@ impl Database {
         }
     }
 
+    // ── sorted set commands ─────────────────────────────────────
+    pub fn zadd(&mut self, key: String, members: Vec<(Bytes, f64)>) -> usize {
+        let zset = self
+            .data
+            .entry(key)
+            .or_insert_with(|| Value::ZSet(Default::default()));
+        if let Value::ZSet(vec) = zset {
+            let mut added = 0;
+            for (m, s) in members {
+                if let Some(pos) = vec.iter().position(|(mb, _)| mb == &m) {
+                    vec[pos] = (m, s); // update score
+                } else {
+                    vec.push((m, s));
+                    added += 1;
+                }
+            }
+            vec.sort_by(|a, b| {
+                let ord = a.1.partial_cmp(&b.1).unwrap();
+                if ord == std::cmp::Ordering::Equal {
+                    a.0.as_ref().cmp(b.0.as_ref())
+                } else {                    
+                    ord
+                }
+            });
+            added
+        } else {
+            0
+        }
+    }
+
     // ── type check helpers ─────────────────────────────────────
 
     pub fn is_type(&self, key: &str, expected: &str) -> bool {
@@ -258,6 +288,7 @@ impl Database {
             Some(Value::List(_)) => expected == "list",
             Some(Value::Set(_)) => expected == "set",
             Some(Value::Hash(_)) => expected == "hash",
+            Some(Value::ZSet(_)) => expected == "zset",
         }
     }
 

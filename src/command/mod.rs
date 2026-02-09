@@ -68,6 +68,7 @@ fn handle_array(
         "HSET" => handle_hset(items, store, aof),
         "HGET" => handle_hget(items, store),
         "HGETALL" => handle_hgetall(items, store),
+        "ZADD" => handle_zadd(items, store, aof),
         _ => RespFrame::Error(format!("ERR unknown command '{cmd}'")),
     }
 }
@@ -788,3 +789,62 @@ fn handle_hgetall(args: Vec<RespFrame>, store: &SharedStore) -> RespFrame {
         Err(_) => RespFrame::Error("ERR store lock poisoned".into()),
     }
 }
+
+// ── Sorted Set Commands ───────────────────────────────────────────────
+// handle_zadd, zrem, zrange, zrangebyscore, zrank, zscore, zremrangebyrank, zremrangebyscore
+
+fn handle_zadd(args: Vec<RespFrame>, store: &SharedStore, aof: Option<&AofWriter>) -> RespFrame {
+    if args.len() < 3 || (args.len() - 1) % 2 != 0 {
+        return RespFrame::Error("ERR wrong number of arguments for 'zadd'".into());
+    }
+
+    let key = match bulk_to_string(&args[0]) {
+        Some(s) => s,
+        None => return RespFrame::Error("ERR key must be bulk string".into()),
+    };
+
+    let mut members = Vec::with_capacity((args.len() - 1) / 2);
+    let mut mem_strs: Vec<String> = Vec::new();
+    let mut i = 1;
+
+    while i < args.len() {
+        let score = match bulk_to_string(&args[i]).and_then(|s| s.parse::<f64>().ok()) {
+            Some(v) => v,
+            None => return RespFrame::Error("ERR score is not a valid float".into()),
+        };
+            // reject NaN / infinite scores to avoid panics during sorting
+            if !score.is_finite() {
+                return RespFrame::Error("ERR score is not a valid float".into());
+            }
+        let member = match bulk_to_bytes(&args[i + 1]) {
+            Some(b) => b,
+            None => return RespFrame::Error("ERR member must be bulk string".into()),
+        };
+        mem_strs.push(score.to_string());
+        mem_strs.push(String::from_utf8_lossy(&member).into_owned());
+            members.push((member, score));
+        i += 2;
+    }
+
+    match store.write() {
+        Ok(mut guard) => {
+            if !guard.is_type(&key, "zset") {
+                return RespFrame::Error(
+                    "WRONGTYPE Operation against a key holding the wrong kind of value".into(),
+                );
+            }
+            let added = guard.zadd(key.clone(), members);
+            if let Some(w) = aof {
+                let mut a: Vec<String> = vec!["ZADD".into(), key];
+                a.extend(mem_strs);
+                let refs: Vec<&str> = a.iter().map(|s| s.as_str()).collect();
+                w.append(&refs);
+            }
+            RespFrame::Integer(added as i64)
+        }
+        Err(_) => RespFrame::Error("ERR store lock poisoned".into()),
+    }
+
+
+}
+
