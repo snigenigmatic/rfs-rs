@@ -43,10 +43,7 @@ struct AofInner {
 impl AofWriter {
     /// Open (or create) the AOF file at `path`.
     pub fn open(path: &Path, policy: FsyncPolicy) -> io::Result<Self> {
-        let file = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(path)?;
+        let file = OpenOptions::new().create(true).append(true).open(path)?;
 
         Ok(Self {
             inner: Arc::new(Mutex::new(AofInner {
@@ -228,6 +225,26 @@ fn replay_command(args: &[String], store: &SharedStore) {
             }
             guard.hset(key, fields);
         }
+        "ZADD" if args.len() >= 4 && (args.len() - 2) % 2 == 0 => {
+            let key = args[1].clone();
+            let mut members = Vec::new();
+            let mut i = 2;
+            while i + 1 < args.len() {
+                if let Ok(score) = args[i].parse::<f64>() {
+                    let member = Bytes::copy_from_slice(args[i + 1].as_bytes());
+                    members.push((member, score));
+                }
+                i += 2;
+            }
+            guard.zadd(key, members);
+        }
+        "ZREM" if args.len() >= 3 => {
+            let members: Vec<Bytes> = args[2..]
+                .iter()
+                .map(|s| Bytes::copy_from_slice(s.as_bytes()))
+                .collect();
+            guard.zrem(&args[1], members);
+        }
         _ => {
             tracing::debug!(cmd = %cmd, "skipping unknown AOF command during replay");
         }
@@ -301,7 +318,9 @@ pub fn rewrite_aof(path: &Path, store: &SharedStore) -> io::Result<()> {
                             RespFrame::BulkString(Some(Bytes::copy_from_slice(key.as_bytes()))),
                         ];
                         for (m, s) in vec {
-                            args.push(RespFrame::BulkString(Some(Bytes::copy_from_slice(s.to_string().as_bytes()))));
+                            args.push(RespFrame::BulkString(Some(Bytes::copy_from_slice(
+                                s.to_string().as_bytes(),
+                            ))));
                             args.push(RespFrame::BulkString(Some(m.clone())));
                         }
                         encode_frame(&RespFrame::Array(Some(args)), &mut buf);

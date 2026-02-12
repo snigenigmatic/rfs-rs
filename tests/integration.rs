@@ -211,3 +211,94 @@ fn test_expiry() {
     drop(stream);
     server.kill().ok();
 }
+
+#[test]
+fn test_sorted_set_commands() {
+    let port = 16386;
+    let mut server = spawn_server(port);
+
+    let mut stream = TcpStream::connect(format!("127.0.0.1:{port}")).unwrap();
+    stream
+        .set_read_timeout(Some(Duration::from_secs(2)))
+        .unwrap();
+
+    // ZADD: Add members with scores
+    let resp = resp_roundtrip(
+        &mut stream,
+        &resp_cmd(&["ZADD", "myzset", "1.0", "one", "2.0", "two", "3.0", "three"]),
+    );
+    assert_eq!(resp, ":3\r\n");
+
+    // ZADD: Update existing member's score
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["ZADD", "myzset", "2.5", "two"]));
+    assert_eq!(resp, ":0\r\n");
+
+    // ZCARD: Get cardinality
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["ZCARD", "myzset"]));
+    assert_eq!(resp, ":3\r\n");
+
+    // ZRANGE: Get range without scores
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["ZRANGE", "myzset", "0", "-1"]));
+    assert_eq!(resp, "*3\r\n$3\r\none\r\n$3\r\ntwo\r\n$5\r\nthree\r\n");
+
+    // ZRANGE: Get range with scores
+    let resp = resp_roundtrip(
+        &mut stream,
+        &resp_cmd(&["ZRANGE", "myzset", "0", "1", "WITHSCORES"]),
+    );
+    assert_eq!(
+        resp,
+        "*4\r\n$3\r\none\r\n$1\r\n1\r\n$3\r\ntwo\r\n$3\r\n2.5\r\n"
+    );
+
+    // ZSCORE: Get score of a member
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["ZSCORE", "myzset", "two"]));
+    assert_eq!(resp, "$3\r\n2.5\r\n");
+
+    // ZSCORE: Non-existent member
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["ZSCORE", "myzset", "nonexistent"]));
+    assert_eq!(resp, "_\r\n");
+
+    // ZRANK: Get rank of a member
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["ZRANK", "myzset", "one"]));
+    assert_eq!(resp, ":0\r\n");
+
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["ZRANK", "myzset", "two"]));
+    assert_eq!(resp, ":1\r\n");
+
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["ZRANK", "myzset", "three"]));
+    assert_eq!(resp, ":2\r\n");
+
+    // ZRANK: Non-existent member
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["ZRANK", "myzset", "nonexistent"]));
+    assert_eq!(resp, "_\r\n");
+
+    // ZCOUNT: Count members in score range
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["ZCOUNT", "myzset", "1.0", "2.5"]));
+    assert_eq!(resp, ":2\r\n");
+
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["ZCOUNT", "myzset", "0", "10"]));
+    assert_eq!(resp, ":3\r\n");
+
+    // ZREM: Remove members
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["ZREM", "myzset", "two"]));
+    assert_eq!(resp, ":1\r\n");
+
+    // Verify removal
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["ZCARD", "myzset"]));
+    assert_eq!(resp, ":2\r\n");
+
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["ZRANGE", "myzset", "0", "-1"]));
+    assert_eq!(resp, "*2\r\n$3\r\none\r\n$5\r\nthree\r\n");
+
+    // ZREM: Remove multiple members
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["ZREM", "myzset", "one", "three"]));
+    assert_eq!(resp, ":2\r\n");
+
+    // Verify all removed
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["ZCARD", "myzset"]));
+    assert_eq!(resp, ":0\r\n");
+
+    drop(stream);
+    server.kill().ok();
+}
