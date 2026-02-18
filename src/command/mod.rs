@@ -11,12 +11,12 @@ mod zset;
 
 use basic::{handle_echo, handle_ping};
 use hash::{handle_hget, handle_hgetall, handle_hset};
-use list::{handle_lpop, handle_lpush, handle_lrange, handle_rpop, handle_rpush};
+use list::{handle_llen, handle_lpop, handle_lpush, handle_lrange, handle_rpop, handle_rpush};
 use set::{handle_sadd, handle_smembers, handle_srem};
 use string::{handle_del, handle_exists, handle_get, handle_set, handle_ttl};
 use zset::{
     handle_zadd, handle_zcard, handle_zcount, handle_zrange, handle_zrank, handle_zrem,
-    handle_zscore,
+    handle_zrevrange, handle_zscore,
 };
 
 // ── Helpers (private here; accessible to all child modules via `super::`) ─
@@ -72,6 +72,7 @@ fn handle_array(
         "LPOP" => handle_lpop(items, store, aof),
         "RPOP" => handle_rpop(items, store, aof),
         "LRANGE" => handle_lrange(items, store),
+        "LLEN" => handle_llen(items, store),
         "SADD" => handle_sadd(items, store, aof),
         "SREM" => handle_srem(items, store, aof),
         "SMEMBERS" => handle_smembers(items, store),
@@ -85,6 +86,7 @@ fn handle_array(
         "ZCARD" => handle_zcard(items, store),
         "ZREM" => handle_zrem(items, store, aof),
         "ZCOUNT" => handle_zcount(items, store),
+        "ZREVRANGE" => handle_zrevrange(items, store),
         _ => RespFrame::Error(format!("ERR unknown command '{cmd}'")),
     }
 }

@@ -302,3 +302,94 @@ fn test_sorted_set_commands() {
     drop(stream);
     server.kill().ok();
 }
+
+#[test]
+fn test_llen() {
+    let port = 16387;
+    let mut server = spawn_server(port);
+
+    let mut stream = TcpStream::connect(format!("127.0.0.1:{port}")).unwrap();
+    stream
+        .set_read_timeout(Some(Duration::from_secs(2)))
+        .unwrap();
+
+    // LLEN on non-existent key returns 0
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["LLEN", "nolist"]));
+    assert_eq!(resp, ":0\r\n");
+
+    // Build a list and check length after each push
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["RPUSH", "mylist", "a", "b", "c"]));
+    assert_eq!(resp, ":3\r\n");
+
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["LLEN", "mylist"]));
+    assert_eq!(resp, ":3\r\n");
+
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["LPUSH", "mylist", "z"]));
+    assert_eq!(resp, ":4\r\n");
+
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["LLEN", "mylist"]));
+    assert_eq!(resp, ":4\r\n");
+
+    // LLEN shrinks after a pop
+    let _ = resp_roundtrip(&mut stream, &resp_cmd(&["LPOP", "mylist"]));
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["LLEN", "mylist"]));
+    assert_eq!(resp, ":3\r\n");
+
+    // LLEN on wrong type returns WRONGTYPE error
+    let _ = resp_roundtrip(&mut stream, &resp_cmd(&["SET", "notalist", "val"]));
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["LLEN", "notalist"]));
+    assert_eq!(
+        resp,
+        "-WRONGTYPE Operation against a key holding the wrong kind of value\r\n"
+    );
+
+    drop(stream);
+    server.kill().ok();
+}
+
+#[test]
+fn test_zrevrange() {
+    let port = 16388;
+    let mut server = spawn_server(port);
+
+    let mut stream = TcpStream::connect(format!("127.0.0.1:{port}")).unwrap();
+    stream
+        .set_read_timeout(Some(Duration::from_secs(2)))
+        .unwrap();
+
+    // ZREVRANGE on non-existent key returns empty array
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["ZREVRANGE", "nozset", "0", "-1"]));
+    assert_eq!(resp, "*0\r\n");
+
+    // Populate sorted set: one=1, two=2, three=3
+    let resp = resp_roundtrip(
+        &mut stream,
+        &resp_cmd(&["ZADD", "lb", "1.0", "one", "2.0", "two", "3.0", "three"]),
+    );
+    assert_eq!(resp, ":3\r\n");
+
+    // Full range — highest score first
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["ZREVRANGE", "lb", "0", "-1"]));
+    assert_eq!(resp, "*3\r\n$5\r\nthree\r\n$3\r\ntwo\r\n$3\r\none\r\n");
+
+    // Top 2 only
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["ZREVRANGE", "lb", "0", "1"]));
+    assert_eq!(resp, "*2\r\n$5\r\nthree\r\n$3\r\ntwo\r\n");
+
+    // WITHSCORES — top 2
+    let resp = resp_roundtrip(
+        &mut stream,
+        &resp_cmd(&["ZREVRANGE", "lb", "0", "1", "WITHSCORES"]),
+    );
+    assert_eq!(
+        resp,
+        "*4\r\n$5\r\nthree\r\n$1\r\n3\r\n$3\r\ntwo\r\n$1\r\n2\r\n"
+    );
+
+    // Last element (lowest score) via negative index
+    let resp = resp_roundtrip(&mut stream, &resp_cmd(&["ZREVRANGE", "lb", "-1", "-1"]));
+    assert_eq!(resp, "*1\r\n$3\r\none\r\n");
+
+    drop(stream);
+    server.kill().ok();
+}

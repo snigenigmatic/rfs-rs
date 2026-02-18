@@ -127,5 +127,46 @@ impl Database {
             Vec::new()
         }
     }
-}
 
+    pub fn zrevrange(
+        &self,
+        key: &str,
+        start: i64,
+        stop: i64,
+        with_scores: bool,
+    ) -> Vec<(Bytes, Option<f64>)> {
+        if let Some(Value::ZSet(vec)) = self.data.get(key) {
+            let len = vec.len() as i64;
+            if len == 0 {
+                return Vec::new();
+            }
+            let s = if start < 0 {
+                (len + start).max(0)
+            } else {
+                start.min(len)
+            } as usize;
+            let e = if stop < 0 {
+                (len + stop).max(-1) + 1
+            } else {
+                (stop + 1).min(len)
+            } as usize;
+            if s >= e {
+                return Vec::new();
+            }
+            vec.iter()
+                .rev()
+                .skip(s)
+                .take(e - s)
+                .map(|(m, score)| {
+                    if with_scores {
+                        (m.clone(), Some(*score))
+                    } else {
+                        (m.clone(), None)
+                    }
+                })
+                .collect()
+        } else {
+            Vec::new()
+        }
+    }
+}

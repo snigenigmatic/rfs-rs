@@ -275,3 +275,55 @@ pub(super) fn handle_zcount(args: Vec<RespFrame>, store: &SharedStore) -> RespFr
     }
 }
 
+pub(super) fn handle_zrevrange(args: Vec<RespFrame>, store: &SharedStore) -> RespFrame {
+    if args.len() < 3 {
+        return RespFrame::Error("ERR wrong number of arguments for 'zrevrange'".into());
+    }
+
+    let key = match bulk_to_string(&args[0]) {
+        Some(s) => s,
+        None => return RespFrame::Error("ERR key must be bulk string".into()),
+    };
+
+    let start = match bulk_to_string(&args[1]).and_then(|s| s.parse::<i64>().ok()) {
+        Some(v) => v,
+        None => return RespFrame::Error("ERR start is not an integer".into()),
+    };
+
+    let stop = match bulk_to_string(&args[2]).and_then(|s| s.parse::<i64>().ok()) {
+        Some(v) => v,
+        None => return RespFrame::Error("ERR stop is not an integer".into()),
+    };
+
+    let mut with_scores = false;
+    if args.len() >= 4 {
+        if let Some(opt) = bulk_to_string(&args[3]) {
+            if opt.to_ascii_uppercase() == "WITHSCORES" {
+                with_scores = true;
+            }
+        }
+    }
+
+    match store.read() {
+        Ok(guard) => {
+            if !guard.is_type(&key, "zset") {
+                return RespFrame::Error(
+                    "WRONGTYPE Operation against a key holding the wrong kind of value".into(),
+                );
+            }
+            let results = guard.zrevrange(&key, start, stop, with_scores);
+            if results.is_empty() {
+                return RespFrame::Array(Some(Vec::new()));
+            }
+            let mut frames = Vec::new();
+            for (member, score_opt) in results {
+                frames.push(RespFrame::BulkString(Some(member)));
+                if let Some(score) = score_opt {
+                    frames.push(RespFrame::BulkString(Some(Bytes::from(score.to_string()))));
+                }
+            }
+            RespFrame::Array(Some(frames))
+        }
+        Err(_) => RespFrame::Error("ERR store lock poisoned".into()),
+    }
+}

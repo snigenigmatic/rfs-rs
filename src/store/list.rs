@@ -82,4 +82,13 @@ impl Database {
             Vec::new()
         }
     }
+
+    pub fn llen(&self, key: &str) -> usize {
+        if let Some(Value::List(deque)) = self.data.get(key) {
+            deque.len()
+        } else {
+            0
+        }
+    }
 }
+

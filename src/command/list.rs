@@ -260,3 +260,26 @@ pub(super) fn handle_lrange(args: Vec<RespFrame>, store: &SharedStore) -> RespFr
         Err(_) => RespFrame::Error("ERR store lock poisoned".into()),
     }
 }
+
+pub(super) fn handle_llen(args: Vec<RespFrame>, store: &SharedStore) -> RespFrame {
+    if args.len() != 1 {
+        return RespFrame::Error("ERR wrong number of arguments for 'llen'".into());
+    }
+
+    let key = match bulk_to_string(&args[0]) {
+        Some(s) => s,
+        None => return RespFrame::Error("ERR key must be bulk string".into()),
+    };
+
+    match store.read() {
+        Ok(guard) => {
+            if !guard.is_type(&key, "list") {
+                return RespFrame::Error(
+                    "WRONGTYPE Operation against a key holding the wrong kind of value".into(),
+                );
+            }
+            RespFrame::Integer(guard.llen(&key) as i64)
+        }
+        Err(_) => RespFrame::Error("ERR store lock poisoned".into()),
+    }
+}
