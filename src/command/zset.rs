@@ -11,7 +11,7 @@ pub(super) fn handle_zadd(
     store: &SharedStore,
     aof: Option<&AofWriter>,
 ) -> RespFrame {
-    if args.len() < 3 || (args.len() - 1) % 2 != 0 {
+    if args.len() < 3 || !(args.len() - 1).is_multiple_of(2) {
         return RespFrame::Error("ERR wrong number of arguments for 'zadd'".into());
     }
 
@@ -83,12 +83,11 @@ pub(super) fn handle_zrange(args: Vec<RespFrame>, store: &SharedStore) -> RespFr
     };
 
     let mut with_scores = false;
-    if args.len() >= 4 {
-        if let Some(opt) = bulk_to_string(&args[3]) {
-            if opt.to_ascii_uppercase() == "WITHSCORES" {
-                with_scores = true;
-            }
-        }
+    if args.len() >= 4
+        && let Some(opt) = bulk_to_string(&args[3])
+        && opt.eq_ignore_ascii_case("WITHSCORES")
+    {
+        with_scores = true;
     }
 
     match store.read() {
@@ -228,13 +227,13 @@ pub(super) fn handle_zrem(
                 );
             }
             let removed = guard.zrem(&key, members);
-            if removed > 0 {
-                if let Some(w) = aof {
-                    let mut a: Vec<String> = vec!["ZREM".into(), key];
-                    a.extend(mem_strs);
-                    let refs: Vec<&str> = a.iter().map(|s| s.as_str()).collect();
-                    w.append(&refs);
-                }
+            if removed > 0
+                && let Some(w) = aof
+            {
+                let mut a: Vec<String> = vec!["ZREM".into(), key];
+                a.extend(mem_strs);
+                let refs: Vec<&str> = a.iter().map(|s| s.as_str()).collect();
+                w.append(&refs);
             }
             RespFrame::Integer(removed as i64)
         }
@@ -296,12 +295,11 @@ pub(super) fn handle_zrevrange(args: Vec<RespFrame>, store: &SharedStore) -> Res
     };
 
     let mut with_scores = false;
-    if args.len() >= 4 {
-        if let Some(opt) = bulk_to_string(&args[3]) {
-            if opt.to_ascii_uppercase() == "WITHSCORES" {
-                with_scores = true;
-            }
-        }
+    if args.len() >= 4
+        && let Some(opt) = bulk_to_string(&args[3])
+        && opt.eq_ignore_ascii_case("WITHSCORES")
+    {
+        with_scores = true;
     }
 
     match store.read() {

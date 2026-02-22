@@ -1,4 +1,4 @@
-use tracing_subscriber::{fmt, layer::SubscriberExt, EnvFilter, Registry};
+use tracing_subscriber::{EnvFilter, Registry, fmt, layer::SubscriberExt};
 
 /// Initialize structured logging with a reasonable default filter.
 pub fn init_tracing() {

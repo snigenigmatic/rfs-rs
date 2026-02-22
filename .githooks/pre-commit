@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo ">>> pre-commit: running checks..."
+
+echo ""
+echo "[1/3] cargo fmt --check"
+cargo fmt --all -- --check || {
+    echo ""
+    echo "  FAIL: formatting issues found."
+    echo "  Run 'cargo fmt --all' to fix them, then re-stage."
+    exit 1
+}
+
+echo ""
+echo "[2/3] cargo clippy"
+cargo clippy --all-targets --all-features -- -D warnings || {
+    echo ""
+    echo "  FAIL: clippy reported warnings/errors."
+    echo "  Fix the issues above, then re-stage."
+    exit 1
+}
+
+echo ""
+echo "[3/3] cargo test"
+cargo test --all --quiet || {
+    echo ""
+    echo "  FAIL: test suite failed."
+    echo "  Fix the failing tests, then re-stage."
+    exit 1
+}
+
+echo ""
+echo ">>> pre-commit: all checks passed."

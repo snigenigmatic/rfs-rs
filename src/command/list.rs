@@ -135,11 +135,11 @@ pub(super) fn handle_lpop(
                             None => break,
                         }
                     }
-                    if !items.is_empty() {
-                        if let Some(w) = aof {
-                            for _ in 0..items.len() {
-                                w.append(&["LPOP", &key]);
-                            }
+                    if !items.is_empty()
+                        && let Some(w) = aof
+                    {
+                        for _ in 0..items.len() {
+                            w.append(&["LPOP", &key]);
                         }
                     }
                     RespFrame::Array(Some(items))
@@ -198,11 +198,11 @@ pub(super) fn handle_rpop(
                             None => break,
                         }
                     }
-                    if !items.is_empty() {
-                        if let Some(w) = aof {
-                            for _ in 0..items.len() {
-                                w.append(&["RPOP", &key]);
-                            }
+                    if !items.is_empty()
+                        && let Some(w) = aof
+                    {
+                        for _ in 0..items.len() {
+                            w.append(&["RPOP", &key]);
                         }
                     }
                     RespFrame::Array(Some(items))

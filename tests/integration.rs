@@ -51,6 +51,7 @@ fn test_ping_pong() {
 
     drop(stream);
     server.kill().ok();
+    server.wait().ok();
 }
 
 #[test]
@@ -80,6 +81,7 @@ fn test_set_get_del() {
 
     drop(stream);
     server.kill().ok();
+    server.wait().ok();
 }
 
 #[test]
@@ -97,6 +99,7 @@ fn test_echo() {
 
     drop(stream);
     server.kill().ok();
+    server.wait().ok();
 }
 
 #[test]
@@ -126,6 +129,7 @@ fn test_list_commands() {
 
     drop(stream);
     server.kill().ok();
+    server.wait().ok();
 }
 
 #[test]
@@ -153,6 +157,7 @@ fn test_set_commands() {
 
     drop(stream);
     server.kill().ok();
+    server.wait().ok();
 }
 
 #[test]
@@ -183,6 +188,7 @@ fn test_hash_commands() {
 
     drop(stream);
     server.kill().ok();
+    server.wait().ok();
 }
 
 #[test]
@@ -210,6 +216,7 @@ fn test_expiry() {
 
     drop(stream);
     server.kill().ok();
+    server.wait().ok();
 }
 
 #[test]
@@ -301,6 +308,7 @@ fn test_sorted_set_commands() {
 
     drop(stream);
     server.kill().ok();
+    server.wait().ok();
 }
 
 #[test]
@@ -345,6 +353,7 @@ fn test_llen() {
 
     drop(stream);
     server.kill().ok();
+    server.wait().ok();
 }
 
 #[test]
@@ -392,4 +401,5 @@ fn test_zrevrange() {
 
     drop(stream);
     server.kill().ok();
+    server.wait().ok();
 }

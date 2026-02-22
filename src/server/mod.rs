@@ -7,7 +7,7 @@ use tokio::sync::Semaphore;
 use crate::config::Config;
 use crate::persistence::aof::{self, AofWriter, FsyncPolicy};
 use crate::server::connection::handle_connection;
-use crate::store::{new_shared, SharedStore};
+use crate::store::{SharedStore, new_shared};
 
 pub mod connection;
 

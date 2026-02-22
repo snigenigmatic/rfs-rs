@@ -12,7 +12,7 @@ pub async fn handle_connection(
     store: SharedStore,
     aof: Option<AofWriter>,
 ) -> std::io::Result<()> {
-    let mut framed = Framed::new(stream, RespCodec::default());
+    let mut framed = Framed::new(stream, RespCodec);
 
     while let Some(frame) = framed.next().await {
         match frame {

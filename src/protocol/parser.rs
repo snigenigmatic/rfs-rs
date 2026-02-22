@@ -352,7 +352,7 @@ mod tests {
     use super::*;
 
     fn decode_all(buf: &[u8]) -> Vec<RespFrame> {
-        let mut codec = RespCodec::default();
+        let mut codec = RespCodec;
         let mut bytes = BytesMut::from(buf);
         let mut out = Vec::new();
         while let Some(frame) = codec.decode(&mut bytes).unwrap() {
@@ -426,7 +426,7 @@ mod tests {
 
     #[test]
     fn double_roundtrip() {
-        let frame = RespFrame::Double(3.1415);
+        let frame = RespFrame::Double(std::f64::consts::PI);
         let bytes = frame_to_bytes(&frame);
         assert_eq!(decode_all(&bytes), vec![frame]);
     }

@@ -1,23 +1,14 @@
-use std::collections::{BinaryHeap, HashMap};
 use std::cmp::Reverse;
+use std::collections::{BinaryHeap, HashMap};
 use std::time::Instant;
 
 /// Tracks key expiration deadlines using a min-heap + map.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Expiry {
     /// Maps key → deadline
     deadlines: HashMap<String, Instant>,
     /// Min-heap ordered by soonest deadline
     heap: BinaryHeap<Reverse<(Instant, String)>>,
-}
-
-impl Default for Expiry {
-    fn default() -> Self {
-        Self {
-            deadlines: HashMap::new(),
-            heap: BinaryHeap::new(),
-        }
-    }
 }
 
 impl Expiry {

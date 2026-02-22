@@ -9,7 +9,7 @@ pub(super) fn handle_hset(
     store: &SharedStore,
     aof: Option<&AofWriter>,
 ) -> RespFrame {
-    if args.len() < 3 || (args.len() - 1) % 2 != 0 {
+    if args.len() < 3 || !(args.len() - 1).is_multiple_of(2) {
         return RespFrame::Error("ERR wrong number of arguments for 'hset'".into());
     }
 

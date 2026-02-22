@@ -30,4 +30,3 @@ pub type SharedStore = Arc<RwLock<Database>>;
 pub fn new_shared() -> SharedStore {
     Arc::new(RwLock::new(Database::new()))
 }
-

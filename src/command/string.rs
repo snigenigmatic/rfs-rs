@@ -134,14 +134,14 @@ pub(super) fn handle_del(
     match store.write() {
         Ok(mut guard) => {
             let removed = guard.del(&keys);
-            if removed > 0 {
-                if let Some(w) = aof {
-                    let mut a = vec!["DEL"];
-                    for k in &keys {
-                        a.push(k);
-                    }
-                    w.append(&a);
+            if removed > 0
+                && let Some(w) = aof
+            {
+                let mut a = vec!["DEL"];
+                for k in &keys {
+                    a.push(k);
                 }
+                w.append(&a);
             }
             RespFrame::Integer(removed as i64)
         }

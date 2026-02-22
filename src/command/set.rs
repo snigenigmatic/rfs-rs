@@ -38,13 +38,13 @@ pub(super) fn handle_sadd(
                 );
             }
             let added = guard.sadd(key.clone(), members);
-            if added > 0 {
-                if let Some(w) = aof {
-                    let mut a: Vec<String> = vec!["SADD".into(), key];
-                    a.extend(mem_strs);
-                    let refs: Vec<&str> = a.iter().map(|s| s.as_str()).collect();
-                    w.append(&refs);
-                }
+            if added > 0
+                && let Some(w) = aof
+            {
+                let mut a: Vec<String> = vec!["SADD".into(), key];
+                a.extend(mem_strs);
+                let refs: Vec<&str> = a.iter().map(|s| s.as_str()).collect();
+                w.append(&refs);
             }
             RespFrame::Integer(added as i64)
         }
@@ -86,13 +86,13 @@ pub(super) fn handle_srem(
                 );
             }
             let removed = guard.srem(&key, members);
-            if removed > 0 {
-                if let Some(w) = aof {
-                    let mut a: Vec<String> = vec!["SREM".into(), key];
-                    a.extend(mem_strs);
-                    let refs: Vec<&str> = a.iter().map(|s| s.as_str()).collect();
-                    w.append(&refs);
-                }
+            if removed > 0
+                && let Some(w) = aof
+            {
+                let mut a: Vec<String> = vec!["SREM".into(), key];
+                a.extend(mem_strs);
+                let refs: Vec<&str> = a.iter().map(|s| s.as_str()).collect();
+                w.append(&refs);
             }
             RespFrame::Integer(removed as i64)
         }

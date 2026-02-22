@@ -212,7 +212,7 @@ fn replay_command(args: &[String], store: &SharedStore) {
                 .collect();
             guard.srem(&args[1], members);
         }
-        "HSET" if args.len() >= 4 && (args.len() - 2) % 2 == 0 => {
+        "HSET" if args.len() >= 4 && (args.len() - 2).is_multiple_of(2) => {
             let key = args[1].clone();
             let mut fields = Vec::new();
             let mut i = 2;
@@ -225,7 +225,7 @@ fn replay_command(args: &[String], store: &SharedStore) {
             }
             guard.hset(key, fields);
         }
-        "ZADD" if args.len() >= 4 && (args.len() - 2) % 2 == 0 => {
+        "ZADD" if args.len() >= 4 && (args.len() - 2).is_multiple_of(2) => {
             let key = args[1].clone();
             let mut members = Vec::new();
             let mut i = 2;
