@@ -30,6 +30,24 @@ Run the test suite:
 
     cargo test
 
+ALternate Build method ( using just ):
+--------------------------------------
+List all available recipies:
+
+    just 
+
+Build
+    just build
+
+Build in release mode
+
+    just build-release
+
+Test
+
+    just test
+
+
 Project layout (important files)
 -------------------------------
 - `src/protocol/` — RESP parser & encoder
